@@ -87,6 +87,8 @@ def load_dir(dir_name, headcut, tailcut):
         len_indexes = len(stats)
     assert(len_indexes)
 
+#    print("flag5 benches:", benches, "  metrics:", metrics, "  stats:", stats)
+#    print("flag5 len_indexes:",len_indexes)
     ret_times = []
     index += 1
     while index < len_indexes:
@@ -112,7 +114,7 @@ def load_dir(dir_name, headcut, tailcut):
 
     if tailcut == 0:
         tailcut = len_indexes
-        print(tailcut)
+#        print(tailcut)
     diff_tailcut = tailcut
     if diff_tailcut > 0:
         diff_tailcut += 1
@@ -120,7 +122,10 @@ def load_dir(dir_name, headcut, tailcut):
     benches = benches[headcut:tailcut]
     metrics = metrics[headcut:diff_tailcut]
     stats = stats[headcut:diff_tailcut]
-    bench_start = ret_times[0]
+    if len(ret_times)==0:
+        bench_start = []
+    else:
+        bench_start = ret_times[0]
     bench_skip = 0
     for t in ret_times[0:headcut]:
         bench_skip += t
@@ -160,7 +165,16 @@ def _load_json(file):
     def parse_object_pairs(pairs):
         return pairs
     with open(file, 'r') as reader:
-        return json.load(reader, object_pairs_hook=parse_object_pairs)
+        names = file.split('_')
+        if names[2]=="stats":
+            json_dict_stats = json.load(reader, object_pairs_hook=parse_object_pairs)
+            return json_dict_stats
+        else:
+            json_dict = json.load(reader, object_pairs_hook=parse_object_pairs)
+            json_tmp = []
+            for i in json_dict[0][1]:
+                json_tmp.append(i[0])
+            return json_tmp
 
 def _process_json_item(json_item):
     name = json_item[0]
@@ -180,6 +194,8 @@ def _process_json_item(json_item):
                     for item in bucket:
                         key = item[0][1]
                         val = item[1][1]
+                        if item[0][1] in ['+Inf', '+inf', '-Inf', '-inf', 'Inf', 'inf']:
+                            key = float(key)
                         if isinstance(key, int) or isinstance(key, float):
                             tmp.append((key, val))
                     if (len(tmp)):
@@ -327,6 +343,7 @@ def parse_metric_file(metric_file):
             setter[_labels[0]] = value
         else:
             setter[_labels[0]] += value
+       # print("setter:", setter)
 
     found_metrics = set()
     expected_metrics = {
@@ -341,20 +358,20 @@ def parse_metric_file(metric_file):
         "memory_allocated_memory",
         "memory_free_memory",
         "memory_total_memory",
-        "async_cleaner_available_bytes",
-        "async_cleaner_projected_used_bytes_sum",
-        "async_cleaner_unavailable_reclaimable_bytes",
-        "async_cleaner_unavailable_unreclaimable_bytes",
-        "async_cleaner_unavailable_unused_bytes",
-        "async_cleaner_used_bytes",
-        "async_cleaner_reclaimed_bytes",
-        "async_cleaner_reclaimed_segment_bytes",
-        "async_cleaner_closed_journal_total_bytes",
-        "async_cleaner_closed_journal_used_bytes",
-        "async_cleaner_closed_ool_total_bytes",
-        "async_cleaner_closed_ool_used_bytes",
-        "async_cleaner_alloc_journal_bytes",
-        "async_cleaner_dirty_journal_bytes",
+        "segment_cleaner_available_bytes",
+        "segment_cleaner_projected_used_bytes_sum",
+        "segment_cleaner_unavailable_reclaimable_bytes",
+        "segment_cleaner_unavailable_unreclaimable_bytes",
+        "segment_cleaner_unavailable_unused_bytes",
+        "segment_cleaner_used_bytes",
+        "segment_cleaner_reclaimed_bytes",
+        "segment_cleaner_reclaimed_segment_bytes",
+        "segment_cleaner_closed_journal_total_bytes",
+        "segment_cleaner_closed_journal_used_bytes",
+        "segment_cleaner_closed_ool_total_bytes",
+        "segment_cleaner_closed_ool_used_bytes",
+        "journal_trimmer_alloc_journal_bytes",
+        "journal_trimmer_dirty_journal_bytes",
         # count
         "segment_manager_data_read_num",
         "segment_manager_data_write_num",
@@ -368,32 +385,32 @@ def parse_metric_file(metric_file):
         "memory_malloc_operations",
         "memory_reclaims_operations",
         "memory_malloc_live_objects",
-        "async_cleaner_segments_open",
-        "async_cleaner_segments_closed",
-        "async_cleaner_segments_empty",
-        "async_cleaner_segments_in_journal",
-        "async_cleaner_segments_type_journal",
-        "async_cleaner_segments_type_ool",
-        "async_cleaner_segments_count_open_journal",
-        "async_cleaner_segments_count_close_journal",
-        "async_cleaner_segments_count_release_journal",
-        "async_cleaner_segments_count_open_ool",
-        "async_cleaner_segments_count_close_ool",
-        "async_cleaner_segments_count_release_ool",
-        "async_cleaner_projected_count",
-        "async_cleaner_io_count",
-        "async_cleaner_io_blocked_count",
-        "async_cleaner_io_blocked_count_trim",
-        "async_cleaner_io_blocked_count_reclaim",
-        "async_cleaner_io_blocked_sum",
+        "segment_cleaner_segments_open",
+        "segment_cleaner_segments_closed",
+        "segment_cleaner_segments_empty",
+        "segment_cleaner_segments_in_journal",
+        "segment_cleaner_segments_type_journal",
+        "segment_cleaner_segments_type_ool",
+        "segment_cleaner_segments_count_open_journal",
+        "segment_cleaner_segments_count_close_journal",
+        "segment_cleaner_segments_count_release_journal",
+        "segment_cleaner_segments_count_open_ool",
+        "segment_cleaner_segments_count_close_ool",
+        "segment_cleaner_segments_count_release_ool",
+        "segment_cleaner_projected_count",
+        "background_process_io_count",
+        "background_process_io_blocked_count",
+        "background_process_io_blocked_count_trim",
+        "background_process_io_blocked_count_clean",
+        "background_process_io_blocked_sum",
         "cache_version_count_dirty",
         "cache_version_count_reclaim",
         "cache_version_sum_dirty",
         "cache_version_sum_reclaim",
         # ratio
         "reactor_utilization",
-        "async_cleaner_available_ratio",
-        "async_cleaner_reclaim_ratio",
+        "segment_cleaner_available_ratio",
+        "segment_cleaner_reclaim_ratio",
         # time
         "reactor_cpu_busy_ms",
         "reactor_cpu_steal_time_ms",
@@ -406,7 +423,7 @@ def parse_metric_file(metric_file):
         "journal_io_num",
         "journal_io_depth_num",
         # util -> count
-        "async_cleaner_segment_utilization_distribution",
+        "segment_cleaner_segment_utilization_distribution",
         # srcs -> count
         "cache_trans_srcs_invalidated",
         # scheduler-group -> time
@@ -452,6 +469,8 @@ def parse_metric_file(metric_file):
     illegal_metrics = set()
     ignored_metrics = set()
     json_items = _load_json(metric_file)
+    with open("./out/json_items", 'w', encoding="utf-8") as fp:
+        fp.write(str(json_items))
     for json_item in json_items:
         name, labels, value = _process_json_item(json_item)
         if value == -1:
@@ -479,33 +498,33 @@ def parse_metric_file(metric_file):
             set_value("memory_free_KB", value/1024)
         elif name == "memory_total_memory":
             set_value("memory_total_KB", value/1024)
-        elif name == "async_cleaner_available_bytes":
+        elif name == "segment_cleaner_available_bytes":
             set_value("available_KB", value/1024)
-        elif name == "async_cleaner_projected_used_bytes_sum":
+        elif name == "segment_cleaner_projected_used_bytes_sum":
             set_value("projected_used_sum_KB", value/1024)
-        elif name == "async_cleaner_unavailable_reclaimable_bytes":
+        elif name == "segment_cleaner_unavailable_reclaimable_bytes":
             set_value("unavail_reclaimable_KB", value/1024)
-        elif name == "async_cleaner_unavailable_unreclaimable_bytes":
+        elif name == "segment_cleaner_unavailable_unreclaimable_bytes":
             set_value("unavail_unreclaimable_KB", value/1024)
-        elif name == "async_cleaner_unavailable_unused_bytes":
+        elif name == "segment_cleaner_unavailable_unused_bytes":
             set_value("unavail_unused_KB", value/1024)
-        elif name == "async_cleaner_used_bytes":
+        elif name == "segment_cleaner_used_bytes":
             set_value("unavail_used_KB", value/1024)
-        elif name == "async_cleaner_reclaimed_bytes":
+        elif name == "segment_cleaner_reclaimed_bytes":
             set_value("reclaimed_KB", value/1024)
-        elif name == "async_cleaner_reclaimed_segment_bytes":
+        elif name == "segment_cleaner_reclaimed_segment_bytes":
             set_value("reclaimed_segment_KB", value/1024)
-        elif name == "async_cleaner_closed_journal_total_bytes":
+        elif name == "segment_cleaner_closed_journal_total_bytes":
             set_value("closed_journal_total_KB", value/1024)
-        elif name == "async_cleaner_closed_journal_used_bytes":
+        elif name == "segment_cleaner_closed_journal_used_bytes":
             set_value("closed_journal_used_KB", value/1024)
-        elif name == "async_cleaner_closed_ool_total_bytes":
+        elif name == "segment_cleaner_closed_ool_total_bytes":
             set_value("closed_ool_total_KB", value/1024)
-        elif name == "async_cleaner_closed_ool_used_bytes":
+        elif name == "segment_cleaner_closed_ool_used_bytes":
             set_value("closed_ool_used_KB", value/1024)
-        elif name == "async_cleaner_alloc_journal_bytes":
+        elif name == "journal_trimmer_alloc_journal_bytes":
             set_value("alloc_journal_KB", value/1024)
-        elif name == "async_cleaner_dirty_journal_bytes":
+        elif name == "journal_trimmer_dirty_journal_bytes":
             set_value("dirty_journal_KB", value/1024)
 
         # count
@@ -533,41 +552,41 @@ def parse_metric_file(metric_file):
             set_value("memory_reclaims", value)
         elif name == "memory_malloc_live_objects":
             set_value("memory_live_objs", value)
-        elif name == "async_cleaner_segments_open":
+        elif name == "segment_cleaner_segments_open":
             set_value("segments_open", value)
-        elif name == "async_cleaner_segments_closed":
+        elif name == "segment_cleaner_segments_closed":
             set_value("segments_closed", value)
-        elif name == "async_cleaner_segments_empty":
+        elif name == "segment_cleaner_segments_empty":
             set_value("segments_empty", value)
-        elif name == "async_cleaner_segments_in_journal":
+        elif name == "segment_cleaner_segments_in_journal":
             set_value("segments_in_journal", value)
-        elif name == "async_cleaner_segments_type_journal":
+        elif name == "segment_cleaner_segments_type_journal":
             set_value("segments_type_journal", value)
-        elif name == "async_cleaner_segments_type_ool":
+        elif name == "segment_cleaner_segments_type_ool":
             set_value("segments_type_ool", value)
-        elif name == "async_cleaner_segments_count_open_journal":
+        elif name == "segment_cleaner_segments_count_open_journal":
             set_value("segments_count_open_journal", value)
-        elif name == "async_cleaner_segments_count_close_journal":
+        elif name == "segment_cleaner_segments_count_close_journal":
             set_value("segments_count_close_journal", value)
-        elif name == "async_cleaner_segments_count_release_journal":
+        elif name == "segment_cleaner_segments_count_release_journal":
             set_value("segments_count_release_journal", value)
-        elif name == "async_cleaner_segments_count_open_ool":
+        elif name == "segment_cleaner_segments_count_open_ool":
             set_value("segments_count_open_ool", value)
-        elif name == "async_cleaner_segments_count_close_ool":
+        elif name == "segment_cleaner_segments_count_close_ool":
             set_value("segments_count_close_ool", value)
-        elif name == "async_cleaner_segments_count_release_ool":
+        elif name == "segment_cleaner_segments_count_release_ool":
             set_value("segments_count_release_ool", value)
-        elif name == "async_cleaner_projected_count":
+        elif name == "segment_cleaner_projected_count":
             set_value("projected_count", value)
-        elif name == "async_cleaner_io_count":
+        elif name == "background_process_io_count":
             set_value("io_count", value)
-        elif name == "async_cleaner_io_blocked_count":
+        elif name == "background_process_io_blocked_count":
             set_value("io_blocked_count", value)
-        elif name == "async_cleaner_io_blocked_count_trim":
+        elif name == "background_process_io_blocked_count_trim":
             set_value("io_blocked_count_trim", value)
-        elif name == "async_cleaner_io_blocked_count_reclaim":
+        elif name == "background_process_io_blocked_count_clean":
             set_value("io_blocked_count_reclaim", value)
-        elif name == "async_cleaner_io_blocked_sum":
+        elif name == "background_process_io_blocked_sum":
             set_value("io_blocked_sum", value)
         elif name == "cache_version_count_dirty":
             set_value("version_count_dirty", value)
@@ -581,9 +600,9 @@ def parse_metric_file(metric_file):
         # ratio
         elif name == "reactor_utilization":
             set_value("reactor_util", value/100)
-        elif name == "async_cleaner_available_ratio":
+        elif name == "segment_cleaner_available_ratio":
             set_value("unavailiable_total", 1 - value)
-        elif name == "async_cleaner_reclaim_ratio":
+        elif name == "segment_cleaner_reclaim_ratio":
             set_value("alive_unavailable", 1 - value)
 
         # time
@@ -609,7 +628,7 @@ def parse_metric_file(metric_file):
             set_value("journal_io_depth_num", value, [labels["submitter"]])
 
         # util -> count
-        elif name == "async_cleaner_segment_utilization_distribution":
+        elif name == "segment_cleaner_segment_utilization_distribution":
             set_value("segment_util_distribution", value)
 
         # srcs -> count
@@ -1122,6 +1141,15 @@ def append_raw_data(dataset, metrics_start, metrics_end, stats_start, stats_end)
         get_diff_l3("committed_disk_efforts_4KB", dataset, metrics_start, metrics_end)
 
 def wash_dataset(dataset, writes_4KB, times_sec, absolute):
+    def print_arginfo(dataset, writes_4KB, times_sec, absolute):
+        with open("./out/args_info", 'w', encoding='utf-8') as fp2:
+            fp2.write("dataset:"+str(dataset))
+            fp2.write("\n")
+            fp2.write("writes_4KB:"+str(writes_4KB))
+            fp2.write("\n")
+            fp2.write("times_sec:"+str(times_sec))
+            fp2.write("\n")
+    print_arginfo(dataset, writes_4KB, times_sec, absolute)
     def merge_lists(lists):
         assert(len(lists))
         length = 0
@@ -1215,34 +1243,36 @@ def wash_dataset(dataset, writes_4KB, times_sec, absolute):
     for tree_type, values in tree_updates_committed_by_tree.items():
         sub_name = tree_type + "_updates"
         washed_dataset[data_name][sub_name] = values
+    if len(times_sec) > 0:
+        def get_IOPS(rws, ts_sec):
+            with open("./out/args_info", 'a', encoding="utf-8") as fp7:
+                fp7.write("\nrws:" + str(rws))
+            assert(len(rws) == len(ts_sec))
+            return [rw/t for rw, t in zip(rws, ts_sec)]
+        def get_IOPS_l2(l2_rws, ts_sec):
+            ret = {}
+            for name, data in l2_rws.items():
+                iops = get_IOPS(data, ts_sec)
+                ret[name] = iops
+            return ret
 
-    def get_IOPS(rws, ts_sec):
-        assert(len(rws) == len(ts_sec))
-        return [rw/t for rw, t in zip(rws, ts_sec)]
-    def get_IOPS_l2(l2_rws, ts_sec):
-        ret = {}
-        for name, data in l2_rws.items():
-            iops = get_IOPS(data, ts_sec)
-            ret[name] = iops
-        return ret
-
-    data_name = "tree_operations_per_second"
-    tree_inserts_PS_committed_by_tree = get_IOPS_l2(
-        _tree_inserts_committed_by_tree, times_sec)
-    tree_erases_PS_committed_by_tree = get_IOPS_l2(
-        _tree_erases_committed_by_tree, times_sec)
-    tree_updates_PS_committed_by_tree = get_IOPS_l2(
-        _tree_updates_committed_by_tree, times_sec)
-    washed_dataset[data_name] = {}
-    for tree_type, values in tree_inserts_PS_committed_by_tree.items():
-        sub_name = tree_type + "_inserts"
-        washed_dataset[data_name][sub_name] = values
-    for tree_type, values in tree_erases_PS_committed_by_tree.items():
-        sub_name = tree_type + "_erases"
-        washed_dataset[data_name][sub_name] = values
-    for tree_type, values in tree_updates_PS_committed_by_tree.items():
-        sub_name = tree_type + "_updates"
-        washed_dataset[data_name][sub_name] = values
+        data_name = "tree_operations_per_second"
+        tree_inserts_PS_committed_by_tree = get_IOPS_l2(
+            _tree_inserts_committed_by_tree, times_sec)
+        tree_erases_PS_committed_by_tree = get_IOPS_l2(
+            _tree_erases_committed_by_tree, times_sec)
+        tree_updates_PS_committed_by_tree = get_IOPS_l2(
+            _tree_updates_committed_by_tree, times_sec)
+        washed_dataset[data_name] = {}
+        for tree_type, values in tree_inserts_PS_committed_by_tree.items():
+            sub_name = tree_type + "_inserts"
+            washed_dataset[data_name][sub_name] = values
+        for tree_type, values in tree_erases_PS_committed_by_tree.items():
+            sub_name = tree_type + "_erases"
+            washed_dataset[data_name][sub_name] = values
+        for tree_type, values in tree_updates_PS_committed_by_tree.items():
+            sub_name = tree_type + "_updates"
+            washed_dataset[data_name][sub_name] = values
 
     # 4. from cache_hit, cache_access
     data_name = "cache_hit_ratio_by_source"
@@ -1628,20 +1658,23 @@ def wash_dataset(dataset, writes_4KB, times_sec, absolute):
     }
 
     data_name = "segment_operation_per_second"
-    segments_count_open_journal_PS = get_IOPS(dataset["segments_count_open_journal"], times_sec)
-    segments_count_close_journal_PS = get_IOPS(dataset["segments_count_close_journal"], times_sec)
-    segments_count_release_journal_PS = get_IOPS(dataset["segments_count_release_journal"], times_sec)
-    segments_count_open_ool_PS = get_IOPS(dataset["segments_count_open_ool"], times_sec)
-    segments_count_close_ool_PS = get_IOPS(dataset["segments_count_close_ool"], times_sec)
-    segments_count_release_ool_PS = get_IOPS(dataset["segments_count_release_ool"], times_sec)
-    washed_dataset[data_name] = {
-        "open_journal": segments_count_open_journal_PS,
-        "close_journal": segments_count_close_journal_PS,
-        "release_journal": segments_count_release_journal_PS,
-        "open_ool": segments_count_open_ool_PS,
-        "close_ool": segments_count_close_ool_PS,
-        "release_ool": segments_count_release_ool_PS,
-    }
+    with open("./out/dataset", 'w', encoding="utf-8") as fp3:
+        fp3.write(str(dataset))
+    if len(times_sec) > 0:
+        segments_count_open_journal_PS = get_IOPS(dataset["segments_count_open_journal"], times_sec)
+        segments_count_close_journal_PS = get_IOPS(dataset["segments_count_close_journal"], times_sec)
+        segments_count_release_journal_PS = get_IOPS(dataset["segments_count_release_journal"], times_sec)
+        segments_count_open_ool_PS = get_IOPS(dataset["segments_count_open_ool"], times_sec)
+        segments_count_close_ool_PS = get_IOPS(dataset["segments_count_close_ool"], times_sec)
+        segments_count_release_ool_PS = get_IOPS(dataset["segments_count_release_ool"], times_sec)
+        washed_dataset[data_name] = {
+            "open_journal": segments_count_open_journal_PS,
+            "close_journal": segments_count_close_journal_PS,
+            "release_journal": segments_count_release_journal_PS,
+            "open_ool": segments_count_open_ool_PS,
+            "close_ool": segments_count_close_ool_PS,
+            "release_ool": segments_count_release_ool_PS,
+        }
 
     # 17. space usage
     data_name = "space_usage_MiB"
@@ -1921,6 +1954,9 @@ def wash_dataset(dataset, writes_4KB, times_sec, absolute):
 
     # indexes
     indexes = accumulate(times_sec)
+    with open("./out/washed_dataset", 'w', encoding="utf-8") as fp8:
+        fp8.write("washed_dataset:" + str(washed_dataset))
+        fp8.write("\nindexes:" + str(indexes))
     return washed_dataset, indexes
 
 def wash_dataset_no_metrics(dataset, writes_4KB, times_sec, absolute):
@@ -2105,6 +2141,8 @@ if __name__ == "__main__":
     print("   bench type: %s" % (bench_type))
     print("   illegal metrics: %s" % (illegal_metrics))
     print("   ignored metrics: %s" % (ignored_metrics))
+    with open("./out/ignored_metrics", 'w', encoding="utf-8") as fp5:
+        fp5.write(str(ignored_metrics))
     print("parse results done")
     print()
 

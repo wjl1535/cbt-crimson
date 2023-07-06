@@ -4,13 +4,13 @@ TOP_DIR=$(cd $(dirname "$0") && pwd)
 
 # configurations
 RESULT_DIR="$TOP_DIR/results"
-BUILD_DIR="~/ceph/build/"
+BUILD_DIR="/home/srq/ceph/build/"
 
 TOTAL_ROUND=10
 ROUND_SECONDS=1
 
 WITH_RADOS_BENCH=true
-BENCH_POOL="pool-name"
+BENCH_POOL="test-pool"
 BENCH_IODEPTH=64
 BENCH_TIME=$(( ($TOTAL_ROUND - 1) * $ROUND_SECONDS -
                ($ROUND_SECONDS > 120 ? 120 : $ROUND_SECONDS) ))
@@ -19,7 +19,7 @@ METRICS_ENABLE=true
 
 # require nvme and iostat, interval > 180s
 STATS_ENABLE=true
-STATS_DEV="/dev/dev-name"
+STATS_DEV="/dev/nvme2n4"
 
 collect_metrics() {
   if ! $METRICS_ENABLE; then
@@ -29,7 +29,7 @@ collect_metrics() {
   local current_ms=$2
   local file_name=result_${current_round}_metrics_${current_ms}.log
   echo "start collect metrics to $file_name ..."
-  CEPH_DEV=1 ./bin/ceph tell osd.0 dump_metrics 2>&1 | tee $RESULT_DIR/$file_name > /dev/null
+  CEPH_DEV=1 ./bin/ceph tell osd.0 dump_metrics | tee $RESULT_DIR/$file_name > /dev/null
   echo "finish collect metrics"
 }
 
@@ -41,8 +41,9 @@ collect_stats() {
   local current_ms=$2
   local file_name=result_${current_round}_stats_${current_ms}.log
   echo "start collect stats to $file_name ..."
-  local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $6, $7, $8}'` )
+  local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $5, $6}'` )
   local nand_host_sectors=( `nvme intel smart-log-add $STATS_DEV | awk 'NR == 14 || NR == 15 {print $5}'` )
+  if [ ${#read_wrtn_dscd_kb[@]} ge 2  -o  ${#nand_host_sectors[@]} ge 2 ]; then 
   tee $RESULT_DIR/$file_name > /dev/null << EOT
 {
   "read_kb": {
@@ -52,7 +53,7 @@ collect_stats() {
     "value": ${read_wrtn_dscd_kb[1]}
   },
   "dscd_kb": {
-    "value": ${read_wrtn_dscd_kb[2]}
+    "value": 0
   },
   "nand_sect": {
     "value": ${nand_host_sectors[0]}
@@ -62,6 +63,10 @@ collect_stats() {
   }
 }
 EOT
+	else
+		echo "Array is empty or the elements are insufficient"
+		exit 1
+	fi
   echo "finish collect stats"
 }
 
