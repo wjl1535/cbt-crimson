@@ -120,7 +120,10 @@ def load_dir(dir_name, headcut, tailcut):
     benches = benches[headcut:tailcut]
     metrics = metrics[headcut:diff_tailcut]
     stats = stats[headcut:diff_tailcut]
-    bench_start = ret_times[0]
+    if len(ret_times)==0:
+        bench_start = []
+    else:
+        bench_start = ret_times[0]
     bench_skip = 0
     for t in ret_times[0:headcut]:
         bench_skip += t
@@ -160,7 +163,15 @@ def _load_json(file):
     def parse_object_pairs(pairs):
         return pairs
     with open(file, 'r') as reader:
-        return json.load(reader, object_pairs_hook=parse_object_pairs)
+        names = file.split('_')
+        if names[2]=="stats":
+            return json.load(reader, object_pairs_hook=parse_object_pairs)
+        else:
+            json_dict = json.load(reader, object_pairs_hook=parse_object_pairs)
+            json_tmp = []
+            for i in json_dict[0][1]:
+                json_tmp.append(i[0])
+                return json_tmp
 
 def _process_json_item(json_item):
     name = json_item[0]
