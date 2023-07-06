@@ -191,6 +191,8 @@ def _process_json_item(json_item):
                     for item in bucket:
                         key = item[0][1]
                         val = item[1][1]
+                        if item[0][1] in ['+Inf', '+inf', '-Inf', '-inf', 'Inf', 'inf']:
+                            key = float(key)
                         if isinstance(key, int) or isinstance(key, float):
                             tmp.append((key, val))
                     if (len(tmp)):
@@ -1227,33 +1229,34 @@ def wash_dataset(dataset, writes_4KB, times_sec, absolute):
         sub_name = tree_type + "_updates"
         washed_dataset[data_name][sub_name] = values
 
-    def get_IOPS(rws, ts_sec):
-        assert(len(rws) == len(ts_sec))
-        return [rw/t for rw, t in zip(rws, ts_sec)]
-    def get_IOPS_l2(l2_rws, ts_sec):
-        ret = {}
-        for name, data in l2_rws.items():
-            iops = get_IOPS(data, ts_sec)
-            ret[name] = iops
-        return ret
+    if len(times_sec) > 0:
+        def get_IOPS(rws, ts_sec):
+            assert(len(rws) == len(ts_sec))
+            return [rw/t for rw, t in zip(rws, ts_sec)]
+        def get_IOPS_l2(l2_rws, ts_sec):
+            ret = {}
+            for name, data in l2_rws.items():
+                iops = get_IOPS(data, ts_sec)
+                ret[name] = iops
+            return ret
 
-    data_name = "tree_operations_per_second"
-    tree_inserts_PS_committed_by_tree = get_IOPS_l2(
-        _tree_inserts_committed_by_tree, times_sec)
-    tree_erases_PS_committed_by_tree = get_IOPS_l2(
-        _tree_erases_committed_by_tree, times_sec)
-    tree_updates_PS_committed_by_tree = get_IOPS_l2(
-        _tree_updates_committed_by_tree, times_sec)
-    washed_dataset[data_name] = {}
-    for tree_type, values in tree_inserts_PS_committed_by_tree.items():
-        sub_name = tree_type + "_inserts"
-        washed_dataset[data_name][sub_name] = values
-    for tree_type, values in tree_erases_PS_committed_by_tree.items():
-        sub_name = tree_type + "_erases"
-        washed_dataset[data_name][sub_name] = values
-    for tree_type, values in tree_updates_PS_committed_by_tree.items():
-        sub_name = tree_type + "_updates"
-        washed_dataset[data_name][sub_name] = values
+        data_name = "tree_operations_per_second"
+        tree_inserts_PS_committed_by_tree = get_IOPS_l2(
+            _tree_inserts_committed_by_tree, times_sec)
+        tree_erases_PS_committed_by_tree = get_IOPS_l2(
+            _tree_erases_committed_by_tree, times_sec)
+        tree_updates_PS_committed_by_tree = get_IOPS_l2(
+            _tree_updates_committed_by_tree, times_sec)
+        washed_dataset[data_name] = {}
+        for tree_type, values in tree_inserts_PS_committed_by_tree.items():
+            sub_name = tree_type + "_inserts"
+            washed_dataset[data_name][sub_name] = values
+        for tree_type, values in tree_erases_PS_committed_by_tree.items():
+            sub_name = tree_type + "_erases"
+            washed_dataset[data_name][sub_name] = values
+        for tree_type, values in tree_updates_PS_committed_by_tree.items():
+            sub_name = tree_type + "_updates"
+            washed_dataset[data_name][sub_name] = values
 
     # 4. from cache_hit, cache_access
     data_name = "cache_hit_ratio_by_source"
@@ -1639,20 +1642,21 @@ def wash_dataset(dataset, writes_4KB, times_sec, absolute):
     }
 
     data_name = "segment_operation_per_second"
-    segments_count_open_journal_PS = get_IOPS(dataset["segments_count_open_journal"], times_sec)
-    segments_count_close_journal_PS = get_IOPS(dataset["segments_count_close_journal"], times_sec)
-    segments_count_release_journal_PS = get_IOPS(dataset["segments_count_release_journal"], times_sec)
-    segments_count_open_ool_PS = get_IOPS(dataset["segments_count_open_ool"], times_sec)
-    segments_count_close_ool_PS = get_IOPS(dataset["segments_count_close_ool"], times_sec)
-    segments_count_release_ool_PS = get_IOPS(dataset["segments_count_release_ool"], times_sec)
-    washed_dataset[data_name] = {
-        "open_journal": segments_count_open_journal_PS,
-        "close_journal": segments_count_close_journal_PS,
-        "release_journal": segments_count_release_journal_PS,
-        "open_ool": segments_count_open_ool_PS,
-        "close_ool": segments_count_close_ool_PS,
-        "release_ool": segments_count_release_ool_PS,
-    }
+    if len(times_sec) > 0:
+        segments_count_open_journal_PS = get_IOPS(dataset["segments_count_open_journal"], times_sec)
+        segments_count_close_journal_PS = get_IOPS(dataset["segments_count_close_journal"], times_sec)
+        segments_count_release_journal_PS = get_IOPS(dataset["segments_count_release_journal"], times_sec)
+        segments_count_open_ool_PS = get_IOPS(dataset["segments_count_open_ool"], times_sec)
+        segments_count_close_ool_PS = get_IOPS(dataset["segments_count_close_ool"], times_sec)
+        segments_count_release_ool_PS = get_IOPS(dataset["segments_count_release_ool"], times_sec)
+        washed_dataset[data_name] = {
+            "open_journal": segments_count_open_journal_PS,
+            "close_journal": segments_count_close_journal_PS,
+            "release_journal": segments_count_release_journal_PS,
+            "open_ool": segments_count_open_ool_PS,
+            "close_ool": segments_count_close_ool_PS,
+            "release_ool": segments_count_release_ool_PS,
+        }
 
     # 17. space usage
     data_name = "space_usage_MiB"
