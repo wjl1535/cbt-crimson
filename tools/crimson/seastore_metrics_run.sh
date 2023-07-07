@@ -41,8 +41,10 @@ collect_stats() {
   local current_ms=$2
   local file_name=result_${current_round}_stats_${current_ms}.log
   echo "start collect stats to $file_name ..."
-  local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $6, $7, $8}'` )
+  local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $5, $6}'` )
   local nand_host_sectors=( `nvme intel smart-log-add $STATS_DEV | awk 'NR == 14 || NR == 15 {print $5}'` )
+  if [ ${#read_wrtn_dscd_kb[@]} -ge 2 ]; then
+    if [ ${#nand_host_sectors[@]} -ge 2 ];then
   tee $RESULT_DIR/$file_name > /dev/null << EOT
 {
   "read_kb": {
@@ -52,7 +54,7 @@ collect_stats() {
     "value": ${read_wrtn_dscd_kb[1]}
   },
   "dscd_kb": {
-    "value": ${read_wrtn_dscd_kb[2]}
+    "value": 0
   },
   "nand_sect": {
     "value": ${nand_host_sectors[0]}
@@ -62,6 +64,14 @@ collect_stats() {
   }
 }
 EOT
+    else
+      echo "Error! getting parameters, please try to execute command: iostat -k -d /dev/dev-name"
+      exit 1
+    fi
+  else
+    echo "Error! getting parameters, please try to execute command: nvme intel smart-log-add /dev/dev-name"
+    exit 1
+  fi
   echo "finish collect stats"
 }
 
