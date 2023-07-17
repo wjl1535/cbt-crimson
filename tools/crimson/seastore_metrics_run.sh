@@ -41,7 +41,15 @@ collect_stats() {
   local current_ms=$2
   local file_name=result_${current_round}_stats_${current_ms}.log
   echo "start collect stats to $file_name ..."
-  local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $5, $6}'` )
+  if [ `iostat -k -d $STATS_DEV | awk 'NR == 3 {print $5}'` = "kB_dscd/s" ]; then
+    local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $6, $7, $8}'` )
+  elif [ `iostat -k -d $STATS_DEV | awk 'NR == 3 {print $5}'` = "kB_read" ]; then
+    local read_wrtn_dscd_kb=( `iostat -k -d $STATS_DEV | awk 'NR == 4 {print $5, $6}'` )
+    read_wrtn_dscd_kb[2]=0
+  else
+    echo "Warning! The parameter is incorrect. Modify the parameter according to the actual output of the iostat commmand"
+    exit 1
+  fi
   local nand_host_sectors=( `nvme intel smart-log-add $STATS_DEV | awk 'NR == 14 || NR == 15 {print $5}'` )
   if [ ${#read_wrtn_dscd_kb[@]} -ge 2 ]; then
     if [ ${#nand_host_sectors[@]} -ge 2 ];then
@@ -54,7 +62,7 @@ collect_stats() {
     "value": ${read_wrtn_dscd_kb[1]}
   },
   "dscd_kb": {
-    "value": 0
+    "value": ${read_wrtn_dscd_kb[2]}
   },
   "nand_sect": {
     "value": ${nand_host_sectors[0]}

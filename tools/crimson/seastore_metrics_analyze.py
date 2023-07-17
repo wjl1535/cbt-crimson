@@ -167,6 +167,7 @@ def _load_json(file):
         if names[2]=="stats":
             return json.load(reader, object_pairs_hook=parse_object_pairs)
         else:
+            assert(names[2]=="metrics")
             json_dict = json.load(reader, object_pairs_hook=parse_object_pairs)
             json_tmp = []
             for i in json_dict[0][1]:
